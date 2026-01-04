@@ -57,6 +57,27 @@ class Library:
         self.members.append(member)
         print(f"👤 회원 가입: '{member.name}' 님이 등록되었습니다.")
 
+    # [NEW] 회원 정보를 수정하는 기능
+    def update_member(self, old_name, new_name):
+        member = next((m for m in self.members if m.name == old_name), None)
+        if member:
+            member.name = new_name
+            print(f"✏️ 정보 수정: '{old_name}' -> '{new_name}' 변경 완료.")
+            return True
+        return False
+
+    # [NEW] 회원을 탈퇴시키는 기능
+    def remove_member(self, member_name):
+        member = next((m for m in self.members if m.name == member_name), None)
+        if member:
+            if member.borrowed_books:
+                print(f"⚠️ 오류: '{member.name}' 님은 반납하지 않은 책이 있어 탈퇴할 수 없습니다.")
+                return False
+            self.members.remove(member)
+            print(f"🗑️ 탈퇴 완료: '{member_name}' 님이 목록에서 삭제되었습니다.")
+            return True
+        return False
+
     # 책을 빌려주는 기능 (due_date 추가)
     def rent_book(self, member, book_title, due_date=None):
         # 1. 먼저 책을 찾습니다.

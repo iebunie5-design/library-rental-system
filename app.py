@@ -23,7 +23,7 @@ st.title("📚 우리동네 도서관 대여 시스템")
 st.markdown("---")
 
 # --- 탭 메뉴 만들기 ---
-tab1, tab2, tab3, tab4 = st.tabs(["📖 도서 목록", "👥 회원 목록", "🔄 대여/반납", "🛠️ 도서 관리"])
+tab1, tab2, tab3, tab4 = st.tabs(["📖 도서 목록", "👥 회원 관리", "🔄 대여/반납", "🛠️ 도서 관리"])
 
 # [탭 1] 도서 목록 보여주기
 with tab1:
@@ -50,22 +50,79 @@ with tab1:
     
     st.table(book_data)
 
-# [탭 2] 회원 목록 보여주기
+# [탭 2] 회원 관리 (목록, 등록, 수정, 삭제)
 with tab2:
-    st.header("등록된 회원")
+    st.header("👥 회원 관리 시스템")
     
-    # 회원 데이터를 텍스트로 깔끔하게 보여주기
-    if not library.members:
-        st.info("등록된 회원이 없습니다.")
-    else:
-        for member in library.members:
-            with st.expander(f"👤 {member.name} 님"):
-                if not member.borrowed_books:
-                    st.write("대출 중인 책이 없습니다.")
+    # 상단: 회원 통계
+    st.metric("총 회원 수", f"{len(library.members)}명")
+    
+    # 탭을 나눠서 기능 구분
+    sub_tab1, sub_tab2, sub_tab3 = st.tabs(["📜 회원 목록", "➕ 신규 등록", "⚙️ 수정/탈퇴"])
+    
+    # 1. 회원 목록
+    with sub_tab1:
+        if not library.members:
+            st.info("등록된 회원이 없습니다.")
+        else:
+            for member in library.members:
+                with st.expander(f"👤 {member.name} 님"):
+                    if not member.borrowed_books:
+                        st.write("대출 중인 책이 없습니다.")
+                    else:
+                        st.write("📚 대출 목록:")
+                        for book in member.borrowed_books:
+                           st.write(f"- {book.title} (반납예정: {book.due_date})")
+
+    # 2. 신규 등록
+    with sub_tab2:
+        st.subheader("신규 회원 등록")
+        new_name = st.text_input("회원 이름 입력", key="new_member_name")
+        if st.button("회원 등록", key="btn_add_member"):
+            if new_name:
+                # 중복 체크
+                if any(m.name == new_name for m in library.members):
+                    st.error("이미 존재하는 회원 이름입니다.")
                 else:
-                    st.write("📚 대출 목록:")
-                    for book in member.borrowed_books:
-                        st.write(f"- {book.title} ({book.author})")
+                    library.register_member(Member(new_name))
+                    st.success(f"'{new_name}'님 환영합니다! 🎉")
+                    st.rerun()
+            else:
+                st.warning("이름을 입력해주세요.")
+
+    # 3. 수정/탈퇴
+    with sub_tab3:
+        st.subheader("회원 정보 관리")
+        member_names = [m.name for m in library.members]
+        if not member_names:
+            st.write("관리할 회원이 없습니다.")
+        else:
+            selected_member = st.selectbox("관리할 회원 선택", member_names, key="manage_member")
+            
+            col_edit, col_del = st.columns(2)
+            
+            # 이름 수정
+            with col_edit:
+                st.write("📝 **이름 수정**")
+                new_update_name = st.text_input("새로운 이름", key="update_name")
+                if st.button("수정 실행", key="btn_update_member"):
+                    if new_update_name:
+                         if library.update_member(selected_member, new_update_name):
+                             st.success("이름이 변경되었습니다.")
+                             st.rerun()
+                    else:
+                        st.warning("변경할 이름을 입력하세요.")
+            
+            # 탈퇴
+            with col_del:
+                st.write("🗑️ **회원 탈퇴**")
+                st.write("(대출 중인 책이 없어야 합니다)")
+                if st.button("탈퇴 실행", key="btn_remove_member"):
+                    if library.remove_member(selected_member):
+                        st.success(f"'{selected_member}'님 탈퇴 처리되었습니다.")
+                        st.rerun()
+                    else:
+                         st.error("반납하지 않은 책이 있어 탈퇴할 수 없습니다.")
 
 # [탭 3] 대여 및 반납 기능
 with tab3:
